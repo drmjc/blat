@@ -16,17 +16,36 @@
 # "T start" "T end" "blockcount" "blockSizes" "qStarts" "tStarts"
 #
 
-## calculate the score from a psl alignment
-##
-## Mark Cowley, 12 April 2006
-##
+#' calculate the score from a psl alignment
+#' 
+#' This calculates the score for a PSL alignment, based on C code from
+#' Jim Kent, see comment in pslScore.R.
+#' This has been optimised, breaking the problem into smaller chunks.
+#' 
+#' @param psl a PSL object
+#' @param isMrna logical: protein scores are 3x size of mrna/nucleotide scores. 
+#' 
+#' @return vector psl alignment score
+#' 
+#' @author Mark Cowley, 12 April 2006
+#' @export
+#' @examples
+#' f <- file.path(system.file(package="blat"), "examples", "test.psl")
+#' psl <- import.psl(f, score=FALSE)
+#' psl$score <- pslScore(psl, FALSE)
+#' head(psl)
+#' 
+#' # or the simpler appraoch
+#' f <- file.path(system.file(package="blat"), "examples", "test.psl")
+#' psl <- import.psl(f, score=TRUE)
+#' head(psl)
+#' 
 pslScore <- function(psl, isMrna=!pslIsProtein(psl[1,])) {
-	require( bitops )
 
 	BATCH_SIZE <- 1000
 
-	if( nrow(psl) > 1 )
-		init.progress.meter2(nrow(psl))
+	# if( nrow(psl) > 1 )
+		# init.progress.meter2(nrow(psl))
 
 	if( nrow(psl) > BATCH_SIZE ) {
 		#
@@ -56,7 +75,7 @@ pslScore <- function(psl, isMrna=!pslIsProtein(psl[1,])) {
 		# speed things up much...
 		#
 		scores <- rep(0, nrow(psl))
-		for(idx in split.into.batches(1:nrow(psl), batch.size=BATCH_SIZE)) {
+		for(idx in split_into_batches(1:nrow(psl), batch.size=BATCH_SIZE)) {
 			scores[idx] <- .pslScore(psl[idx,], isMrna)
 		}
 		return( scores )
@@ -66,13 +85,15 @@ pslScore <- function(psl, isMrna=!pslIsProtein(psl[1,])) {
 	}
 }
 
+#' @importFrom bitops bitShiftR
 .pslScore <- function(psl, isMrna) {
+	# stop("I dropped bitops dependency, as it doesn't have namespace; thus bitops::bitShiftR no longer works.")
 	if( nrow(psl) > 1 ) {
 		scores <- rep(0, nrow(psl))
 
 		for(i in 1:nrow(psl)) {
 			scores[i] <- pslScore(psl[i,], isMrna)
-			update.progress.meter2()
+			# update.progress.meter2()
 		}
 		return( scores )
 	}
@@ -83,20 +104,30 @@ pslScore <- function(psl, isMrna=!pslIsProtein(psl[1,])) {
 				sizeMul * psl$"mis-match" - psl$"Q gapcount" - psl$"T gapcount" )
 	}
 }
+## C-code from Jim Kent.
 ## int pslScore(const struct psl *psl) {
 ##     /* Return score for psl. */
 ##     int sizeMul = pslIsProtein(psl) ? 3 : 1;
 ##
-       # x >> 1 right shifts x by 1 bit (ie 0111 -> 0011; 7 -> 3)
+##     # x >> 1 right shifts x by 1 bit (ie 0111 -> 0011; 7 -> 3)
 ##     return sizeMul * (psl->match + ( psl->repMatch>>1)) -
 ##              sizeMul * psl->misMatch - psl->qNumInsert - psl->tNumInsert;
 ## }
 
 
-## calculate the % identity of a psl alignment
-##
-## Mark Cowley, 12 April 2006
-##
+#' calculate the % identity of a psl alignment
+#' 
+#' Many years later, this version looks more robust than pslPercentIdentity2 and pslPercentIdentity3
+#' 
+#' @inheritParams pslScore
+#' @export numeric vector
+#' @author Mark Cowley, 12 April 2006
+#' @export
+#' 
+#' @examples
+#' f <- file.path(system.file(package="blat"), "examples", "test.psl")
+#' psl <- import.psl(f, score=TRUE)[1:5,]
+#' pslPercentIdentity(psl, FALSE)
 pslPercentIdentity <- function(psl, isMrna=!pslIsProtein(psl)) {
 	BATCH_SIZE <- 1000
 
@@ -108,8 +139,8 @@ pslPercentIdentity <- function(psl, isMrna=!pslIsProtein(psl)) {
 		#
         scores <- rep(0, nrow(psl))
 
-# 		init.progress.meter2( nrow(psl) )
-		for(idx in split.into.batches(1:nrow(psl), batch.size=BATCH_SIZE)) {
+# 		# init.progress.meter2( nrow(psl) )
+		for(idx in split_into_batches(1:nrow(psl), batch.size=BATCH_SIZE)) {
 			scores[idx] <- pslPercentIdentity(psl[idx,], isMrna)
         }
 
@@ -119,7 +150,7 @@ pslPercentIdentity <- function(psl, isMrna=!pslIsProtein(psl)) {
 		scores <- rep(0, nrow(psl))
 		for(i in 1:nrow(psl)) {
 			scores[i] <- pslPercentIdentity(psl[i,], isMrna)
-# 			update.progress.meter2()
+# 			# update.progress.meter2()
 		}
 		return( scores )
 	}
@@ -128,6 +159,11 @@ pslPercentIdentity <- function(psl, isMrna=!pslIsProtein(psl)) {
 	}
 }
 
+#' calculate the % identity of a psl alignment V2
+#' 
+#' @inheritParams pslScore
+#' @author Mark Cowley, 12 April 2006
+#' @importFrom mjcbase split_into_batches
 pslPercentIdentity2 <- function(psl, isMrna=!pslIsProtein(psl)) {
 	BATCH_SIZE <- 1000
 
@@ -139,24 +175,31 @@ pslPercentIdentity2 <- function(psl, isMrna=!pslIsProtein(psl)) {
 		#
         scores <- rep(0, nrow(psl))
 
-# 		init.progress.meter2( nrow(psl) )
-		for(idx in split.into.batches(1:nrow(psl), batch.size=BATCH_SIZE)) {
+# 		# init.progress.meter2( nrow(psl) )
+		for(idx in split_into_batches(1:nrow(psl), batch.size=BATCH_SIZE)) {
 			for(i in 1:length(idx)) {
 				scores[idx[i]] <- round(100.0 - pslCalcMilliBad(psl[idx[i],], isMrna) * 0.1, 1)
-# 				update.progress.meter2()
+# 				# update.progress.meter2()
 			}
         }
         return( scores )
 	}
 }
 
+#' calculate the % identity of a psl alignment V3
+#' 
+#' should be slower than V2
+#' 
+#' @inheritParams pslScore
+#' @author Mark Cowley, 12 April 2006
+#' @importFrom mjcbase split_into_batches
 pslPercentIdentity3 <- function(psl, isMrna=!pslIsProtein(psl)) {
 	scores <- rep(0, nrow(psl))
 
-# 	init.progress.meter2( nrow(psl) )
+# 	# init.progress.meter2( nrow(psl) )
 	for(i in 1:nrow(psl)) {
 		scores[i] <- round(100.0 - pslCalcMilliBad(psl[i,], isMrna) * 0.1, 1)
-# 		update.progress.meter2()
+# 		# update.progress.meter2()
 	}
 	return( scores )
 }
@@ -164,10 +207,23 @@ pslPercentIdentity3 <- function(psl, isMrna=!pslIsProtein(psl)) {
 
 
 
-## internal function used to determing a psl alignment score.
-##
-## Mark Cowley, 12 April 2006
-##
+#' internal function used to determing a psl alignment score.
+#' 
+#' @inheritParams pslScore
+#' @return integer. largely undocumented
+#' @author Mark Cowley, 12 April 2006
+#' 
+#' @examples
+#' ## Note the order within psl differs if import.psl(score=TRUE)
+#' f <- file.path(system.file(package="blat"), "examples", "test.psl")
+#' psl <- import.psl(f, score=FALSE)[1:5,]
+#' pslCalcMilliBad(psl[3,])
+#' psl[3,]
+#' 
+#' psl <- import.psl(f, score=TRUE)[1:5,]
+#' pslCalcMilliBad(psl[3,])
+#' psl[3,]
+#' 
 pslCalcMilliBad <- function(psl, isMrna=!pslIsProtein(psl)) {
 
 	if( nrow(psl) > 1 ) {
@@ -238,11 +294,26 @@ pslCalcMilliBad <- function(psl, isMrna=!pslIsProtein(psl)) {
 ## }
 
 
-## is the psl alignment from a protein?
-##
-## fixed the bug on the - strand where psl$"T end" - (_ + 3*_)
-##
-## Mark Cowley, 12 April 2006
+#' is the psl alignment from a protein?
+#'
+#' fixed the bug on the - strand where psl$"T end" - (_ + 3*_)
+#'
+#' @inheritParams pslScore
+#' 
+#' @return logical
+#' 
+#' @author Mark Cowley, 12 April 2006
+#' @export
+#' @importFrom mjcbase uncsv
+#' 
+#' @examples
+#' f <- file.path(system.file(package="blat"), "examples", "test.psl")
+#' psl <- import.psl(f, score=FALSE)[1:5,]
+#' pslIsProtein(psl)
+#' 
+#' psl <- import.psl(f, score=TRUE)[1:5,]
+#' pslIsProtein(psl)
+#' 
 pslIsProtein <- function(psl) {
 	if( nrow(psl) > 1 ) {
 		scores <- rep(F, nrow(psl))
