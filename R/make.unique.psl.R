@@ -1,35 +1,40 @@
-## Convert a PSL alignment data.frame into a minimal 1:1 alignment file
-## where each query has at most one target
-##
-## Ambiguity Rules:
-##     If there's only one alignment for a query, then no change
-##     If there's > 1 alignment for a query, work out the pslScore's
-##      for each alignment, and choose the best one. If there is a tie
-##      for the best alignment, then the one closest to the top of the
-##      data.frame is chosen. In the case of a tie, warning messages are
-##      displaying indicating to the user whether the ties were all on
-##      the same chromosome or not.
-##
-## Parameters:
-##     psl: a psl data.frame; see import.psl()
-##     quick: if T, then only the best hit for each transcript is returned
-##            with no regard for ties. If there is a score tie for a transcript
-##            then the first one (alphabetically) will be returned.
-##
-## Value:
-##     a data.frame with 1 row per query containing the best alignment for
-##     each query.
-##
-## Mark Cowley, 12 April 2006
-##
-make.unique.psl <- function(psl, quick=F, ambig.thresh=0.95) {
+#' Convert a PSL alignment data.frame into a minimal 1:1 alignment file
+#' where each query has at most one target
+#'
+#' @section Ambiguity Rules:
+#'     If there's only one alignment for a query, then no change
+#'     If there's > 1 alignment for a query, work out the pslScore's
+#'      for each alignment, and choose the best one. If there is a tie
+#'      for the best alignment, then the one closest to the top of the
+#'      \code{data.frame} is chosen. In the case of a tie, warning messages are
+#'      displaying indicating to the user whether the ties were all on
+#'      the same chromosome or not.
+#'
+#' @param psl a psl data.frame; see import.psl
+#' @param quick if \code{TRUE}, then only the best hit for each transcript is returned
+#'            with no regard for ties. If there is a score tie for a transcript
+#'            then the first one (alphabetically) will be returned.
+#' @param ambig.thresh undocumented
+#'
+#' @return a \code{data.frame} with 1 row per query containing the best alignment for
+#'     each query.
+#'
+#' @author Mark Cowley, 12 April 2006
+#' @export
+#' 
+#' @examples
+#' f <- file.path(system.file(package="blat"), "examples", "test.psl")
+#' psl <- import.psl(f, score=FALSE)
+#' make.unique.psl(psl)
+#' 
+make.unique.psl <- function(psl, quick=FALSE, ambig.thresh=0.95) {
     queries <- unique(psl[,"Q name"])
 
     if( quick ) {
         #
         # just return the best hit for each transcript, completely ignoring ties.
         #
-        if( !grepT("score", colnames(psl)) )
+        if( !"score" %in% colnames(psl) )
             psl$score <- pslScore(psl)
 
         psl <- psl[order(psl$"Q name", -psl$score), ]
@@ -55,11 +60,11 @@ make.unique.psl <- function(psl, quick=F, ambig.thresh=0.95) {
         rows <- c( multihits.rowindices[i]:(multihits.rowindices[i+1]-1) )
 
         # get scores and reorder.
-        if( grepT("score", colnames(psl)) )
+        if( "score" %in% colnames(psl) )
             scores <- psl$score[rows]
         else
             scores <- pslScore(psl[rows,])
-        rows <- rows[order(scores, decreasing=T)]
+        rows <- rows[order(scores, decreasing=TRUE)]
         scores <- scores[order(scores)]
 
         #
@@ -100,11 +105,11 @@ make.unique.psl <- function(psl, quick=F, ambig.thresh=0.95) {
 
 ##             if( alleq(psl[tiedrows, "T name"]) )
 ##                 # then they're on the same chromosome
-## ##                 warning( p(multihits[i], " has ", length(tiedrows), " hits to same chromosome") )
+## ##                 warning( paste0(multihits[i], " has ", length(tiedrows), " hits to same chromosome") )
 ##                 dummy <- 1
 ##             else
 ##                 # then they're on the different chromosomes
-##                 warning( p(multihits[i], " has ", length(tiedrows), " hits to different chromosomes") )
+##                 warning( paste0(multihits[i], " has ", length(tiedrows), " hits to different chromosomes") )
 
 
 
