@@ -9,12 +9,12 @@
 #' Add a check to make sure the regions don't extend beyond the end of a
 #' chromosome.
 #' 
-#' @param x a \code{data.frame} from \code{\link{import.ucsc.blat}}
+#' @param x a \code{data.frame} from import.ucsc.blat
 #' @param upstream numeric(1) indicating the nuber of bases to grow
 #'  in the upstream direction. default=0
 #' @param downstream numeric(1) indicating the nuber of bases to grow
 #'  in the downstream direction. default=0
-#' @return
+#' @return a \code{data.frame}
 #' @author Mark Cowley, 2011-11-29
 #' @export
 grow.bed <- function(x, upstream=0, downstream=0) {
