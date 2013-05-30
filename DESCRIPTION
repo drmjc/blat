@@ -1,12 +1,29 @@
 Package: blat
-Version: 0.1
-Date: 2006-04-18
+Version: 1.0.0
+Date: 2013-05-30
 Title: Import/Export functions for UCSC genome BLAT alignments
-Author: Mark Cowley <mark.cowley@student.unsw.edu.au>
-Maintainer:  Mark Cowley <mark.cowley@student.unsw.edu.au>
-Depends: R (>= 2.2.0), bitops
-Suggests:
-Description: Allows user to import genome alignments, score psl alignments and write out custom tracks for displaying in the genome browser.
-URL: http://www.r-project.org, http://www.littlelab.bioinformatics.unsw.edu.au, http://genome.ucsc.edu/cgi-bin/hgGateway
+Author: Mark Cowley <m.cowley@garvan.org.au>
+Maintainer: Mark Cowley <mark.cowley@student.unsw.edu.au>
+Description: Allows user to import genome alignments, score psl alignments and
+    write out custom tracks for displaying in the genome browser.
 Type: Package
 License: GPL-2
+Imports:
+    bitops,
+    mjcbase
+Depends:
+    R (>= 2.2.0),
+    genomics
+Collate:
+    'alignment2psl.R'
+    'grow.bed.R'
+    'import.psl.R'
+    'make.unique.psl.R'
+    'midpoint.bed.R'
+    'psl.utils.R'
+    'psl2bed.R'
+    'pslScore.R'
+    'write.psl.track.R'
+    'new.psl.R'
+    'blat-package.R'
+    'import.ucsc.bed.R'
