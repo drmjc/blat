@@ -6,6 +6,7 @@
 #' 
 #' @author Mark Cowley, 2011-11-29
 #' @export
+#' 
 #' @examples
 #' bed <- data.frame(chrom="chr1", chromStart=c(100,200,300), chromEnd=c(110, 250, 500))
 #' midpoint.bed(bed)
